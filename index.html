@@ -893,6 +893,9 @@ function checkPassword(submit) {
     document.getElementById('password-screen').style.display = 'none';
     document.getElementById('sidebar').style.display = 'flex';
     document.getElementById('main-content').style.display = 'block';
+    // Show bottom nav on mobile
+    const bn = document.getElementById('bottom-nav');
+    if (bn) bn.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
     setCurrentMonth('dash');
     setCurrentMonth('vc');
     setCurrentMonth('bl');
@@ -1548,8 +1551,8 @@ function initDevis() {
   if (sel && sel.options.length === 0) {
     (DB.soc||[]).forEach(s => {
       const opt = document.createElement('option');
-      opt.value = s.cod_s || s['cod_s'] || '';
-      opt.textContent = s.nom || '';
+      opt.value = s.cod_s;
+      opt.textContent = '[' + s.cod_s + '] ' + (s.nom || '');
       sel.appendChild(opt);
     });
     loadSocInfo();
@@ -1560,12 +1563,12 @@ function initDevis() {
 function loadSocInfo() {
   const sel = document.getElementById('devis-soc-select');
   const cod = sel?.value;
-  const soc = (DB.soc||[]).find(s=>String(s.cod_s||s['N°']||'')===String(cod));
+  const soc = (DB.soc||[]).find(s => String(s.cod_s) === String(cod));
   if (!soc) return;
   document.getElementById('devis-soc-info').innerHTML =
     `<div>📧 ${soc.mail||''}</div><div>📍 ${soc.addresse||''}</div>` +
-    `<div>📞 ${soc.tel||''}</div>` +
-    (soc.fax && soc.fax!=='' && soc.fax!=='-' ? `<div>🏦 ${soc.fax}</div>` : '');
+    (soc.tel&&soc.tel!=='-' ? `<div>📞 ${soc.tel}</div>` : '') +
+    (soc.fax&&soc.fax!==''&&soc.fax!=='-' ? `<div>🏦 ${soc.fax}</div>` : '');
 }
 
 // ── Client search ──────────────────────────────────────────
@@ -1729,7 +1732,7 @@ function printDevis() {
   if (!devisItems.length) { alert('أضف منتجات أولاً'); return; }
   const sel      = document.getElementById('devis-soc-select');
   const cod_s    = sel?.value;
-  const soc      = (DB.soc||[]).find(s=>String(s.cod_s||s['N°']||'')===String(cod_s)) || {};
+  const soc      = (DB.soc||[]).find(s=>String(s.cod_s)===String(cod_s)) || {};
   const clientNm = document.getElementById('devis-client-name')?.value || document.getElementById('devis-client-search')?.value || '—';
   const clientTl = document.getElementById('devis-client-tel')?.value  || '';
   const clientRc = document.getElementById('devis-client-rc')?.value   || '-';
@@ -1905,7 +1908,56 @@ function printDevis() {
 }
 
 
+// ─── MOBILE NAV ───────────────────────────────────────────
+function toggleMoreDrawer() {
+  const d = document.getElementById('more-drawer');
+  if (d) d.classList.toggle('open');
+}
+function closeMoreDrawer() {
+  const d = document.getElementById('more-drawer');
+  if (d) d.classList.remove('open');
+}
+function syncBottomNav(name) {
+  const mainPages = ['dashboard','bls','stock','clients'];
+  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.more-drawer-item').forEach(b => b.classList.remove('active'));
+  if (mainPages.includes(name)) {
+    const btn = document.getElementById('bn-'+name);
+    if (btn) btn.classList.add('active');
+  } else {
+    document.getElementById('bn-more')?.classList.add('active');
+    const btn = document.getElementById('md-'+name);
+    if (btn) btn.classList.add('active');
+  }
+}
+// Close more drawer on outside click
+document.addEventListener('click', e => {
+  const drawer = document.getElementById('more-drawer');
+  const moreBtn = document.getElementById('bn-more');
+  if (drawer && drawer.classList.contains('open')) {
+    if (!drawer.contains(e.target) && !moreBtn?.contains(e.target)) {
+      drawer.classList.remove('open');
+    }
+  }
+});
+
+// ─── THEME ────────────────────────────────────────────────
+let isLight = false;
+function toggleTheme() {
+  isLight = !isLight;
+  document.body.classList.toggle('light', isLight);
+  document.getElementById('theme-icon').textContent = isLight ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = isLight ? 'الوضع الليلي' : 'الوضع النهاري';
+  if (monthlyChart) renderMonthlyChart();
+}
+
 // ─── STARTUP ──────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  const bn = document.getElementById('bottom-nav');
+  if (!bn) return;
+  const appVisible = document.getElementById('main-content')?.style.display === 'block';
+  if (appVisible) bn.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
+});
 // Show upload screen, hide app until file is loaded
 document.getElementById('upload-screen').style.display = 'flex';
 document.getElementById('sidebar').style.display = 'none';
@@ -1913,7 +1965,7 @@ document.getElementById('main-content').style.display = 'none';
 </script>
 
 <!-- BOTTOM NAV (mobile only) -->
-<div class="bottom-nav" style="display:none">
+<div class="bottom-nav" id="bottom-nav" style="display:none">
   <button class="bottom-nav-item active" id="bn-dashboard" onclick="showPage('dashboard')">
     <span class="bn-icon">🏠</span><span>الرئيسية</span>
   </button>
