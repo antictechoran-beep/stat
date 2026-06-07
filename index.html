@@ -257,8 +257,27 @@ select:focus { outline: none; border-color: var(--accent); }
 
   /* Tables: horizontal scroll */
   .table-card { overflow-x: auto; }
+  .table-card.no-overflow { overflow: visible !important; }
   table { min-width: 500px; }
   thead th, tbody td { padding: 8px 10px !important; font-size: 12px !important; }
+
+  /* Devis page mobile fixes */
+  #page-devis .table-card { overflow: visible !important; }
+  #page-devis table { min-width: 400px; }
+  #devis-search-results, #devis-client-dropdown {
+    position: fixed !important;
+    left: 8px !important; right: 8px !important;
+    top: auto !important;
+    z-index: 9000 !important;
+    max-height: 50vh !important;
+  }
+  #page-devis .page-header { flex-direction: row; flex-wrap: wrap; }
+  #page-devis [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  #page-devis [style*="display:grid;grid-template-columns:1fr 1fr"] {
+    display: flex !important; flex-direction: column;
+  }
 
   /* Page header: stack on mobile */
   .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
@@ -616,8 +635,8 @@ select:focus { outline: none; border-color: var(--accent); }
           <input id="devis-search" class="search-input" style="width:100%;padding:8px 12px;" placeholder="🔍 ابحث عن منتج من المخزون..." oninput="searchDevisProduct()">
           <div id="devis-search-results" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:500;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.3);margin-top:4px;"></div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <input id="devis-manual-name" class="search-input" style="padding:7px 10px;font-size:13px;min-width:160px;" placeholder="أو اكتب منتج يدوياً...">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
+          <input id="devis-manual-name" class="search-input" style="padding:7px 10px;font-size:13px;flex:1;min-width:140px;" placeholder="أو اكتب منتج يدوياً...">
           <input type="number" id="devis-manual-qte" value="1" min="1" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;width:70px;">
           <input type="number" id="devis-manual-prix" placeholder="السعر" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;width:100px;">
           <button onclick="addDevisManual()" style="background:var(--accent2);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;">+ إضافة</button>
@@ -880,7 +899,15 @@ function checkPassword(submit) {
     setCurrentMonth('ac');
     setCurrentMonth('dep');
     initVCUserFilter();
+    // Render all pages so tables are ready when user navigates
     renderDashboard();
+    renderComptoir();
+    renderBLs();
+    renderStock();
+    renderAchats();
+    renderClients();
+    renderFournisseurs();
+    renderDepence();
   } else {
     document.getElementById('pw-error').textContent = '❌ كلمة السر غير صحيحة، حاول مجدداً';
     document.getElementById('pw-input').value = '';
@@ -1548,6 +1575,7 @@ function searchDevisClient() {
   if (!q || q.length < 1) { dd.style.display='none'; return; }
   const results = (DB.client||[]).filter(r=>(r.nom_cl||'').toLowerCase().includes(q)).slice(0,10);
   if (!results.length) { dd.style.display='none'; return; }
+  positionDropdown('devis-client-search', 'devis-client-dropdown');
   dd.style.display='block';
   dd.innerHTML = results.map(r=>`
     <div onclick="selectDevisClient(${r.cod_cl})" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s;"
@@ -1580,12 +1608,33 @@ document.addEventListener('click', e => {
 });
 
 // ── Product search ─────────────────────────────────────────
+function positionDropdown(inputId, dropId) {
+  const inp = document.getElementById(inputId);
+  const drop = document.getElementById(dropId);
+  if (!inp || !drop) return;
+  if (window.innerWidth <= 900) {
+    const rect = inp.getBoundingClientRect();
+    drop.style.position = 'fixed';
+    drop.style.top = (rect.bottom + 4) + 'px';
+    drop.style.left = '8px';
+    drop.style.right = '8px';
+    drop.style.width = 'auto';
+  } else {
+    drop.style.position = 'absolute';
+    drop.style.top = '100%';
+    drop.style.left = '';
+    drop.style.right = '';
+    drop.style.width = '';
+  }
+}
+
 function searchDevisProduct() {
   const q = (document.getElementById('devis-search')?.value||'').toLowerCase().trim();
   const sr = document.getElementById('devis-search-results');
   if (!q || q.length < 1) { sr.style.display='none'; return; }
   const prods = (DB.produit||[]).filter(r=>(r.designation||'').toLowerCase().includes(q)).slice(0,15);
   if (!prods.length) { sr.style.display='none'; return; }
+  positionDropdown('devis-search', 'devis-search-results');
   sr.style.display='block';
   sr.innerHTML = prods.map(r=>`
     <div onclick="addDevisProduct('${(r.designation||'').replace(/'/g,"\'")}',${parseNum(r.prix_vent_detail)},${parseNum(r.qte_restante)})"
