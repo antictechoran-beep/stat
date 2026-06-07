@@ -188,11 +188,98 @@ select:focus { outline: none; border-color: var(--accent); }
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
 @media (max-width: 900px) {
-  .chart-grid, .two-col { grid-template-columns: 1fr; }
-  .sidebar { width: 60px; }
-  .sidebar .nav-item span, .sidebar .logo-text, .sidebar .logo-file,
-  .sidebar .theme-btn span, .sidebar .reload-btn span { display: none; }
-  .main { margin-right: 60px; padding: 16px; }
+  /* Hide desktop sidebar, show mobile bottom nav */
+  .sidebar { display: none !important; }
+  .main { margin-right: 0 !important; padding: 12px 10px 80px !important; }
+
+  /* Bottom navigation bar */
+  .bottom-nav {
+    display: flex !important;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+    justify-content: space-around; align-items: stretch;
+    height: 62px; padding: 0;
+  }
+  .bottom-nav-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex: 1; gap: 3px; cursor: pointer; padding: 6px 2px;
+    color: var(--text2); font-family: 'Cairo', sans-serif;
+    font-size: 9px; font-weight: 700; transition: color 0.15s;
+    border: none; background: none;
+  }
+  .bottom-nav-item .bn-icon { font-size: 20px; line-height: 1; }
+  .bottom-nav-item.active { color: var(--accent); }
+  .bottom-nav-item:active { background: var(--bg3); }
+
+  /* More menu drawer */
+  .more-drawer {
+    display: none; position: fixed; bottom: 62px; left: 0; right: 0; z-index: 199;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    padding: 8px 0; box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
+  }
+  .more-drawer.open { display: block; }
+  .more-drawer-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 20px; color: var(--text2); cursor: pointer;
+    font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 600;
+    transition: background 0.15s; border: none; background: none; width: 100%;
+  }
+  .more-drawer-item:hover, .more-drawer-item.active { background: var(--bg3); color: var(--accent); }
+  .more-drawer-item .md-icon { font-size: 20px; min-width: 28px; text-align: center; }
+
+  /* Mobile header bar */
+  .mobile-header {
+    display: flex !important;
+    align-items: center; justify-content: space-between;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 10px 14px; margin: -12px -10px 16px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .mobile-header-title { font-size: 15px; font-weight: 800; color: var(--text); }
+  .mobile-header-actions { display: flex; gap: 8px; }
+  .mobile-icon-btn {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); width: 36px; height: 36px; border-radius: 9px;
+    cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Cards: 2 per row on phones */
+  .cards-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .card { padding: 14px 12px !important; }
+  .card-value { font-size: 16px !important; }
+  .card-icon { width: 38px !important; height: 38px !important; font-size: 20px !important; }
+
+  /* Charts full width */
+  .chart-grid { grid-template-columns: 1fr !important; }
+  .top-grid { grid-template-columns: 1fr !important; }
+  .chart-container { height: 200px !important; }
+
+  /* Tables: horizontal scroll */
+  .table-card { overflow-x: auto; }
+  table { min-width: 500px; }
+  thead th, tbody td { padding: 8px 10px !important; font-size: 12px !important; }
+
+  /* Page header: stack on mobile */
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .date-filter { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+  .date-filter input[type=date] { font-size: 12px; padding: 4px 8px; }
+  .quick-dates { flex-wrap: wrap; }
+  .btn-quick { font-size: 11px; padding: 4px 8px; }
+
+  /* Modal full screen on mobile */
+  .modal { padding: 16px; max-height: 95vh; border-radius: 12px 12px 0 0; }
+  .modal-overlay.open { align-items: flex-end; }
+  .modal-info { flex-direction: column; gap: 8px; }
+  .modal-info-item { min-width: unset; }
+
+  /* Devis page */
+  #page-devis .page-header { flex-direction: row; }
+  #page-devis table { min-width: 400px; }
+}
+
+@media (min-width: 901px) {
+  .bottom-nav, .more-drawer, .mobile-header { display: none !important; }
 }
 </style>
 </head>
@@ -1331,7 +1418,10 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  document.querySelector(`.nav-item[onclick*="${name}"]`).classList.add('active');
+  const navItem = document.querySelector(`.nav-item[onclick*="${name}"]`);
+  if (navItem) navItem.classList.add('active');
+  syncBottomNav(name);
+  window.scrollTo(0, 0);
   if (name==='dashboard') renderDashboard();
   else if (name==='comptoir') renderComptoir();
   else if (name==='bls') renderBLs();
@@ -1491,7 +1581,40 @@ function printDevis() {
   win.document.close();
 }
 
-// ─── THEME ────────────────────────────────────────────────
+// ─── MOBILE NAV ───────────────────────────────────────────
+function toggleMoreDrawer() {
+  const d = document.getElementById('more-drawer');
+  d.classList.toggle('open');
+}
+function closeMoreDrawer() {
+  document.getElementById('more-drawer').classList.remove('open');
+}
+// Close drawer on outside click
+document.addEventListener('click', e => {
+  const drawer = document.getElementById('more-drawer');
+  const moreBtn = document.getElementById('bn-more');
+  if (drawer && !drawer.contains(e.target) && e.target !== moreBtn && !moreBtn?.contains(e.target)) {
+    drawer.classList.remove('open');
+  }
+});
+
+function syncBottomNav(name) {
+  // Map page names to bottom nav button ids
+  const mainPages = ['dashboard','bls','stock','clients'];
+  const morePages = ['comptoir','achats','fournisseurs','depence','devis'];
+  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.more-drawer-item').forEach(b => b.classList.remove('active'));
+  if (mainPages.includes(name)) {
+    const btn = document.getElementById('bn-'+name);
+    if (btn) btn.classList.add('active');
+  } else if (morePages.includes(name)) {
+    document.getElementById('bn-more')?.classList.add('active');
+    const btn = document.getElementById('md-'+name);
+    if (btn) btn.classList.add('active');
+  }
+}
+
+
 let isLight = false;
 function toggleTheme() {
   isLight=!isLight;
@@ -1507,5 +1630,53 @@ document.getElementById('upload-screen').style.display = 'flex';
 document.getElementById('sidebar').style.display = 'none';
 document.getElementById('main-content').style.display = 'none';
 </script>
+
+<!-- BOTTOM NAV (mobile only) -->
+<div class="bottom-nav" style="display:none">
+  <button class="bottom-nav-item active" id="bn-dashboard" onclick="showPage('dashboard')">
+    <span class="bn-icon">🏠</span><span>الرئيسية</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-bls" onclick="showPage('bls')">
+    <span class="bn-icon">📄</span><span>وصولات</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-stock" onclick="showPage('stock')">
+    <span class="bn-icon">📦</span><span>مخزون</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-clients" onclick="showPage('clients')">
+    <span class="bn-icon">👤</span><span>زبائن</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-more" onclick="toggleMoreDrawer()">
+    <span class="bn-icon">☰</span><span>المزيد</span>
+  </button>
+</div>
+
+<!-- MORE DRAWER (mobile) -->
+<div class="more-drawer" id="more-drawer">
+  <button class="more-drawer-item" id="md-comptoir" onclick="showPage('comptoir');closeMoreDrawer()">
+    <span class="md-icon">🛒</span><span>بيع الكاونتر</span>
+  </button>
+  <button class="more-drawer-item" id="md-achats" onclick="showPage('achats');closeMoreDrawer()">
+    <span class="md-icon">🛍️</span><span>المشتريات</span>
+  </button>
+  <button class="more-drawer-item" id="md-fournisseurs" onclick="showPage('fournisseurs');closeMoreDrawer()">
+    <span class="md-icon">🏭</span><span>الموردون</span>
+  </button>
+  <button class="more-drawer-item" id="md-depence" onclick="showPage('depence');closeMoreDrawer()">
+    <span class="md-icon">💸</span><span>المصاريف</span>
+  </button>
+  <button class="more-drawer-item" id="md-devis" onclick="showPage('devis');closeMoreDrawer()">
+    <span class="md-icon">📝</span><span>وصل تقدير</span>
+  </button>
+  <div style="border-top:1px solid var(--border);margin:4px 0;"></div>
+  <button class="more-drawer-item" onclick="refreshFile();closeMoreDrawer()">
+    <span class="md-icon">🔃</span><span>تحديث البيانات</span>
+  </button>
+  <button class="more-drawer-item" onclick="reloadFile();closeMoreDrawer()">
+    <span class="md-icon">📂</span><span>تغيير الملف</span>
+  </button>
+  <button class="more-drawer-item" onclick="toggleTheme();closeMoreDrawer()">
+    <span class="md-icon">🌙</span><span>تغيير المظهر</span>
+  </button>
+</div>
 </body>
 </html>
