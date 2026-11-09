@@ -96,9 +96,9 @@ td.n{direction:ltr;font-variant-numeric:tabular-nums;} tbody tr:nth-child(even){
   <div class="flt" id="m-f" style="display:none;box-shadow:none;border:1px solid var(--border);padding:8px"><div class="f"><label data-i="from"></label><input type="date" id="m-from" onchange="MD&&MD.render()"/></div><div class="f"><label data-i="to"></label><input type="date" id="m-to" onchange="MD&&MD.render()"/></div></div>
   <div class="info" id="m-i"></div><div class="tw"><table><thead id="m-h"></thead><tbody id="m-b"></tbody></table></div></div></div></div>
 <div id="welcome"><div class="lbox"><div style="font-size:3rem">📊</div><h2 data-i="w_t"></h2><p data-i="w_p"></p><button class="btn y" style="padding:14px" onclick="chooseFile()">📂 <span data-i="w_b"></span></button></div></div>
-<div id="lock"><form class="lbox" onsubmit="doLogin(event)"><div style="font-size:3rem">🔒</div><h2 data-i="l_t"></h2><p data-i="l_p"></p>
-  <div style="position:relative"><input class="in" id="lu" autocomplete="off" autocapitalize="off" oninput="sugU()" onfocus="sugU()" data-ph="l_user"/><div id="su"></div></div><input class="in" id="lp" type="password" autocomplete="current-password" data-ph="l_pass"/>
-  <label class="chk2"><input type="checkbox" id="lr" checked/> <span data-i="l_rem"></span></label><button class="btn y" style="padding:12px" data-i="l_go"></button><div class="err" id="pin-e"></div></form></div></div>
+<div id="lock"><form class="lbox" onsubmit="doLogin(event)"><div style="font-size:3rem">🔒</div><h2 id="lk-t" data-i="l_t"></h2><p id="lk-p" data-i="l_p"></p>
+  <div id="luw" style="position:relative"><input class="in" id="lu" autocomplete="off" autocapitalize="off" oninput="sugU()" onfocus="sugU()" data-ph="l_user"/><div id="su"></div></div><input class="in" id="lp" type="password" autocomplete="current-password" data-ph="l_pass"/>
+  <label class="chk2" id="lrw"><input type="checkbox" id="lr" checked/> <span data-i="l_rem"></span></label><button class="btn y" id="lgo" style="padding:12px" data-i="l_go"></button><div class="err" id="pin-e"></div></form></div></div>
 <div class="ld" id="ld"></div><div class="toast" id="toast"></div>
 <input type="file" id="fi" accept=".xlsx,.xlsm,.xls" style="display:none"/>
 
@@ -442,10 +442,22 @@ function verify(u, p){
   Object.keys(r).forEach(k => { if(!skip.includes(',' + k.toLowerCase() + ',')) perms[k.toLowerCase()] = String(r[k]).trim().toLowerCase() === 'oui'; });
   return {nom:String(fld(r, 'nom')).trim(), type:fld(r, 'type'), perms, pass:String(p)};
 }
-const can = p => !!(USER && USER.perms[p]);
+const can = p => !!(USER && (USER.pin || USER.perms[p]));
+/* sans table Utilisateur dans le fichier : ancien accès par l'heure (HHMM), sans aucun indice à l'écran */
+const pinMode = () => !tbl('utilisateur');
 function savedCred(){ try{ return JSON.parse(localStorage.getItem('sv_cred') || 'null'); }catch(e){ return null; } }
+function lockMode(){
+  const pm = pinMode(), d = x => pm ? 'none' : '';
+  ['lk-t', 'lk-p', 'luw', 'lrw', 'lgo'].forEach(id => $(id).style.display = d());
+  $('lp').type = 'password'; $('lp').setAttribute('inputmode', pm ? 'numeric' : 'text'); $('lp').maxLength = pm ? 4 : 524288; $('lp').autocomplete = pm ? 'off' : 'current-password';
+  $('lp').style.cssText = pm ? 'text-align:center;font-size:1.5rem;letter-spacing:.4em;direction:ltr' : '';
+  $('lp').oninput = pm ? () => { if($('lp').value.length >= 4) doLogin(); } : null;
+  $('lp').placeholder = pm ? '' : t('l_pass');
+}
 function showLogin(msg){
+  lockMode();
   $('welcome').className = ''; $('lock').className = 'on'; $('pin-e').textContent = msg || '';
+  if(pinMode()){ $('lp').value = ''; setTimeout(() => $('lp').focus(), 100); return; }
   const c = savedCred(); if(c && !$('lu').value){ $('lu').value = c.u || ''; $('lp').value = c.p || ''; }
   setTimeout(() => ($('lu').value ? $('lp') : $('lu')).focus(), 100);
 }
@@ -457,8 +469,13 @@ function sugU(){
 $('su').addEventListener('mousedown', e => { const d = e.target.closest('div[data-n]'); if(d){ e.preventDefault(); $('lu').value = d.dataset.n; $('su').style.display = 'none'; $('lp').focus(); } });
 $('lu').addEventListener('blur', () => setTimeout(() => $('su').style.display = 'none', 150));
 function doLogin(e){
-  e.preventDefault();
-  if(!tbl('utilisateur')){ $('pin-e').textContent = t('l_nou'); return; }
+  if(e) e.preventDefault();
+  if(pinMode()){
+    const n = new Date(), exp = String(n.getHours()).padStart(2, '0') + String(n.getMinutes()).padStart(2, '0');
+    if($('lp').value.trim() === exp){ USER = {nom:'', pin:true, perms:{}}; $('lock').className = ''; $('lp').value = ''; start(); }
+    else { $('pin-e').textContent = '❌'; $('lp').value = ''; setTimeout(() => $('pin-e').textContent = '', 1500); }
+    return;
+  }
   const u = verify($('lu').value, $('lp').value);
   if(!u){ $('pin-e').textContent = t('l_bad'); $('lp').value = ''; setTimeout(() => $('pin-e').textContent = '', 2500); return; }
   USER = u;
@@ -469,10 +486,11 @@ function logout(){ USER = null; try{ localStorage.removeItem('sv_cred'); }catch(
 function start(){
   if(!DB) return;
   // ré-validation de la session à chaque chargement du fichier (mot de passe/droits peuvent avoir changé)
-  if(USER){ const u = verify(USER.nom, USER.pass); USER = u; }
-  if(!USER){ const c = savedCred(); if(c){ const u = verify(c.u, c.p); if(u) USER = u; } }
+  if(USER && !USER.pin){ const u = verify(USER.nom, USER.pass); USER = u; }
+  if(USER && USER.pin && !pinMode()) USER = null;
+  if(!USER && !pinMode()){ const c = savedCred(); if(c){ const u = verify(c.u, c.p); if(u) USER = u; } }
   if(!USER){ $('lock').className = 'on'; showLogin(); return; }
-  $('lock').className = ''; $('welcome').className = ''; $('who').textContent = '👤 ' + USER.nom; $('lo').style.display = '';
+  $('lock').className = ''; $('welcome').className = ''; $('who').textContent = USER.pin ? '' : '👤 ' + USER.nom; $('lo').style.display = USER.pin ? 'none' : '';
   buildPages(); bindDash();
   const allowed = p => can(p.perm) && !(p.opt && !DB[p.opt]);
   PAGES.forEach(p => { const b = $('tb-' + p.id); if(b) b.classList.toggle('hide', !allowed(p)); });
