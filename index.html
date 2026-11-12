@@ -87,7 +87,7 @@ td.n{direction:ltr;font-variant-numeric:tabular-nums;} tbody tr:nth-child(even){
 </div>
 <div class="tabs" id="tabs"></div>
 <div class="main" id="main">
-  <div class="pg" id="p-home"><div class="home-grid" id="home-grid"></div></div>
+  <div class="pg" id="p-home"><button class="btn y" id="fsBtn" style="align-self:center;margin-bottom:4px" onclick="toggleFullscreen()">⛶ <span data-i="fs_on"></span></button><div class="home-grid" id="home-grid"></div></div>
   <div class="pg" id="p-dash">
     <div class="flt"><div class="f"><label data-i="from"></label><input type="date" id="dash-from"/></div><div class="f"><label data-i="to"></label><input type="date" id="dash-to"/></div>
       <button class="btn" onclick="dashDraw()">🔍 <span data-i="show"></span></button>
@@ -121,7 +121,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 <script>
 const $ = id => document.getElementById(id);
 const TXT = {
-fr:{title:'Suivi (lecture seule)',open:'Choisir le fichier',refresh:'Actualiser',auto:'Auto (1 min)',from:'Du',to:'Au',show:'Afficher',search:'Recherche',user:'Utilisateur',all_u:'— Tous —',home:'Accueil',
+fr:{title:'Suivi (lecture seule)',open:'Choisir le fichier',refresh:'Actualiser',auto:'Auto (1 min)',from:'Du',to:'Au',show:'Afficher',search:'Recherche',user:'Utilisateur',all_u:'— Tous —',home:'Accueil',fs_on:'Plein écran',fs_off:'Quitter le plein écran',fs_no:'Plein écran non disponible sur ce navigateur',
  q_today:"Aujourd'hui",q_week:'Cette semaine',q_month:'Ce mois',q_year:'Cette année',q_all:'Tout',
  t_dash:'Tableau de Bord',t_vc:'Vente comptoir',t_bl:'Bons de livraison',t_stock:'Stock',t_ac:'Achats',t_cli:'Clients',t_fo:'Fournisseurs',t_dep:'Dépenses',t_rep:'Réparations',t_prod:'Production',
  d_sales:'Total des ventes (net)',d_ben:'Bénéfice',d_dep:'Dépenses',d_net_k:'Bénéfice net',d_dcl:'Dettes clients',d_dfo:'Dettes fournisseurs',d_net:'Bénéfice net par période',d_vs:'Ventes et dépenses',d_exp:'Dépenses',d_topcl:'Top 10 clients',d_toppr:'Top 10 produits',
@@ -132,7 +132,7 @@ fr:{title:'Suivi (lecture seule)',open:'Choisir le fichier',refresh:'Actualiser'
  c_prod:'Produits',c_va:"Valeur d'achat",c_vv:'Valeur de vente',c_mg:'Marge',c_nb:'Nombre',c_debt:'Avec solde ≠ 0',c_tot:'Solde total',c_click:'Touchez une ligne pour le détail',c_exp:'Total dépenses',c_ops:'Opérations',
  m_sales:'Ventes',m_buy:'Achats',m_left:'Stock restant',m_pay:'Règlements',m_bills:'Total achats',m_pays:'Total règlements',k_bl:'Vente BL',k_vc:'Comptoir',k_ac:'Achat',k_reg:'Règlement',items:'Articles',
  debt:'(dû)',sold:'Quantité vendue',adv:'(avance)'},
-ar:{title:'مراقبة (قراءة فقط)',open:'اختيار الملف',refresh:'تحديث',auto:'تلقائي (دقيقة)',from:'من',to:'إلى',show:'عرض',search:'بحث',user:'المستخدم',all_u:'— الكل —',home:'الرئيسية',
+ar:{title:'مراقبة (قراءة فقط)',open:'اختيار الملف',refresh:'تحديث',auto:'تلقائي (دقيقة)',from:'من',to:'إلى',show:'عرض',search:'بحث',user:'المستخدم',all_u:'— الكل —',home:'الرئيسية',fs_on:'ملء الشاشة',fs_off:'الخروج من ملء الشاشة',fs_no:'ملء الشاشة غير متوفر في هذا المتصفح',
  q_today:'اليوم',q_week:'هذا الأسبوع',q_month:'هذا الشهر',q_year:'هذه السنة',q_all:'الكل',
  t_dash:'لوحة القيادة',t_vc:'البيع بالتجزئة',t_bl:'وصولات التسليم',t_stock:'المخزون',t_ac:'المشتريات',t_cli:'الزبائن',t_fo:'الموردون',t_dep:'المصاريف',t_rep:'التصليحات',t_prod:'التركيب',
  d_sales:'إجمالي المبيعات (الصافي)',d_ben:'الربح',d_dep:'المصاريف',d_net_k:'صافي الربح',d_dcl:'ديون الزبائن',d_dfo:'ديون الموردين',d_net:'صافي الربح حسب الفترة',d_vs:'المبيعات والمصاريف',d_exp:'المصاريف',d_topcl:'أفضل 10 زبائن',d_toppr:'أفضل 10 منتجات',
@@ -157,6 +157,26 @@ function vtime(r){ const s = String(r.time || r.date_v || ''); const m = s.match
 const cls = v => v < 0 ? 'neg' : v > 0 ? 'pos' : '';
 function short(v){ const a = Math.abs(v), s = v < 0 ? '-' : ''; if(a >= 1e6) return s + (a/1e6).toFixed(1) + 'M'; if(a >= 1e3) return s + (a/1e3).toFixed(a >= 1e4 ? 0 : 1) + 'k'; return s + Math.round(a); }
 function toast(m, err){ const e = $('toast'); e.textContent = m; e.className = 'toast on' + (err ? ' e' : ''); clearTimeout(toast._t); toast._t = setTimeout(() => e.className = 'toast', 3500); }
+
+/* ───────── plein écran (surtout utile sur téléphone : masque la barre d'adresse du navigateur) ───────── */
+function fsEl(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function toggleFullscreen(){
+  const el = document.documentElement;
+  if(!fsEl()){
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if(!req){ toast(t('fs_no'), true); return; }
+    req.call(el).catch(() => toast(t('fs_no'), true));
+  }else{
+    const ex = document.exitFullscreen || document.webkitExitFullscreen;
+    if(ex) ex.call(document);
+  }
+}
+function syncFsBtn(){
+  const b = $('fsBtn'); if(!b) return;
+  b.innerHTML = '⛶ <span>' + (fsEl() ? t('fs_off') : t('fs_on')) + '</span>';
+}
+document.addEventListener('fullscreenchange', syncFsBtn);
+document.addEventListener('webkitfullscreenchange', syncFsBtn);
 
 /* ───────── stockage navigateur (IndexedDB) : poignée du fichier + dernières données ───────── */
 const IDB = {
@@ -451,7 +471,7 @@ function applyLang(){
   document.documentElement.lang = LANG; document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
   document.querySelectorAll('[data-i]').forEach(e => e.textContent = t(e.dataset.i));
   $('l-fr').className = LANG === 'fr' ? 'on' : ''; $('l-ar').className = LANG === 'ar' ? 'on' : '';
-  applyPh(); PAGES.forEach(p => { const b = $('tb-' + p.id); if(b) b.textContent = t(p.k); });
+  applyPh(); PAGES.forEach(p => { const b = $('tb-' + p.id); if(b) b.textContent = t(p.k); }); syncFsBtn();
   if(META.name){ $('hf').textContent = t('f_file') + META.name; $('hu').textContent = t('f_upd') + new Date(META.time).toLocaleString(nf()); }
 }
 function setLang(l){ LANG = l; try{ localStorage.setItem('sv_lang2', l); }catch(e){} applyLang(); if(DB && USER){ const cur = (document.querySelector('.pg.on') || {}).id; const id = cur ? cur.slice(2) : 'home'; id === 'home' ? buildHomeGrid() : id === 'dash' ? dashDraw() : draw(id); } }
