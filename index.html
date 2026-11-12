@@ -31,6 +31,11 @@ button,input,select{font-family:inherit;font-size:1rem;}
 .f.grow{flex:1;min-width:150px;}
 .qk{display:flex;gap:5px;flex-wrap:wrap;} .qb{border:none;background:#ece7fa;color:var(--primary);font-weight:800;border-radius:9px;padding:8px 12px;cursor:pointer;font-size:.85rem;} .qb.on{background:var(--primary);color:#fff;}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;}
+.home-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:520px;margin:4px auto;}
+.home-tile{border:none;border-radius:16px;padding:20px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;box-shadow:var(--shadow);min-height:100px;transition:transform .12s;}
+.home-tile:active{transform:scale(.96);}
+.home-tile .ic{font-size:2.1rem;line-height:1;}
+@media(min-width:640px){.home-grid{grid-template-columns:repeat(3,1fr);max-width:640px;}}
 .card{background:#fff;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);border-inline-start:6px solid var(--primary);min-width:0;}
 .card small{display:block;color:var(--muted);font-weight:700;font-size:.76rem;margin-bottom:3px;}
 .card b{font-size:1.25rem;color:var(--primary-dark);direction:ltr;display:inline-block;font-variant-numeric:tabular-nums;max-width:100%;overflow-wrap:anywhere;}
@@ -71,7 +76,7 @@ td.n{direction:ltr;font-variant-numeric:tabular-nums;} tbody tr:nth-child(even){
 </head>
 <body>
 <div class="hdr">
-  <h1>📊 ANTIC <b>STOCK</b> — <span data-i="title"></span></h1>
+  <h1 style="cursor:pointer" onclick="if(DB&&USER) go('home')">📊 ANTIC <b>STOCK</b> — <span data-i="title"></span></h1>
   <div class="sp"></div>
   <div><small id="hf"></small><small id="hu"></small></div>
   <label class="chk" id="autow"><input type="checkbox" id="auto"/> <span data-i="auto"></span></label>
@@ -82,6 +87,7 @@ td.n{direction:ltr;font-variant-numeric:tabular-nums;} tbody tr:nth-child(even){
 </div>
 <div class="tabs" id="tabs"></div>
 <div class="main" id="main">
+  <div class="pg" id="p-home"><div class="home-grid" id="home-grid"></div></div>
   <div class="pg" id="p-dash">
     <div class="flt"><div class="f"><label data-i="from"></label><input type="date" id="dash-from"/></div><div class="f"><label data-i="to"></label><input type="date" id="dash-to"/></div>
       <button class="btn" onclick="dashDraw()">🔍 <span data-i="show"></span></button>
@@ -115,7 +121,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 <script>
 const $ = id => document.getElementById(id);
 const TXT = {
-fr:{title:'Suivi (lecture seule)',open:'Choisir le fichier',refresh:'Actualiser',auto:'Auto (1 min)',from:'Du',to:'Au',show:'Afficher',search:'Recherche',user:'Utilisateur',all_u:'— Tous —',
+fr:{title:'Suivi (lecture seule)',open:'Choisir le fichier',refresh:'Actualiser',auto:'Auto (1 min)',from:'Du',to:'Au',show:'Afficher',search:'Recherche',user:'Utilisateur',all_u:'— Tous —',home:'Accueil',
  q_today:"Aujourd'hui",q_week:'Cette semaine',q_month:'Ce mois',q_year:'Cette année',q_all:'Tout',
  t_dash:'Tableau de Bord',t_vc:'Vente comptoir',t_bl:'Bons de livraison',t_stock:'Stock',t_ac:'Achats',t_cli:'Clients',t_fo:'Fournisseurs',t_dep:'Dépenses',t_rep:'Réparations',t_prod:'Production',
  d_sales:'Total des ventes (net)',d_ben:'Bénéfice',d_dep:'Dépenses',d_net_k:'Bénéfice net',d_dcl:'Dettes clients',d_dfo:'Dettes fournisseurs',d_net:'Bénéfice net par période',d_vs:'Ventes et dépenses',d_exp:'Dépenses',d_topcl:'Top 10 clients',d_toppr:'Top 10 produits',
@@ -126,7 +132,7 @@ fr:{title:'Suivi (lecture seule)',open:'Choisir le fichier',refresh:'Actualiser'
  c_prod:'Produits',c_va:"Valeur d'achat",c_vv:'Valeur de vente',c_mg:'Marge',c_nb:'Nombre',c_debt:'Avec solde ≠ 0',c_tot:'Solde total',c_click:'Touchez une ligne pour le détail',c_exp:'Total dépenses',c_ops:'Opérations',
  m_sales:'Ventes',m_buy:'Achats',m_left:'Stock restant',m_pay:'Règlements',m_bills:'Total achats',m_pays:'Total règlements',k_bl:'Vente BL',k_vc:'Comptoir',k_ac:'Achat',k_reg:'Règlement',items:'Articles',
  debt:'(dû)',sold:'Quantité vendue',adv:'(avance)'},
-ar:{title:'مراقبة (قراءة فقط)',open:'اختيار الملف',refresh:'تحديث',auto:'تلقائي (دقيقة)',from:'من',to:'إلى',show:'عرض',search:'بحث',user:'المستخدم',all_u:'— الكل —',
+ar:{title:'مراقبة (قراءة فقط)',open:'اختيار الملف',refresh:'تحديث',auto:'تلقائي (دقيقة)',from:'من',to:'إلى',show:'عرض',search:'بحث',user:'المستخدم',all_u:'— الكل —',home:'الرئيسية',
  q_today:'اليوم',q_week:'هذا الأسبوع',q_month:'هذا الشهر',q_year:'هذه السنة',q_all:'الكل',
  t_dash:'لوحة القيادة',t_vc:'البيع بالتجزئة',t_bl:'وصولات التسليم',t_stock:'المخزون',t_ac:'المشتريات',t_cli:'الزبائن',t_fo:'الموردون',t_dep:'المصاريف',t_rep:'التصليحات',t_prod:'التركيب',
  d_sales:'إجمالي المبيعات (الصافي)',d_ben:'الربح',d_dep:'المصاريف',d_net_k:'صافي الربح',d_dcl:'ديون الزبائن',d_dfo:'ديون الموردين',d_net:'صافي الربح حسب الفترة',d_vs:'المبيعات والمصاريف',d_exp:'المصاريف',d_topcl:'أفضل 10 زبائن',d_toppr:'أفضل 10 منتجات',
@@ -268,8 +274,26 @@ const PAGES = [
 function bal(v){ v = pn(v); return '<span class="' + cls(v) + '">' + fmt(v) + (v < 0 ? ' <small>' + t('debt') + '</small>' : v > 0 ? ' <small>' + t('adv') + '</small>' : '') + '</span>'; }
 function cardHtml(c, k, v, isCount){ return '<div class="card ' + c + '"><small>' + esc(t(k)) + '</small><b>' + (isCount ? v : fmt(v)) + (isCount ? '' : '<i>DA</i>') + '</b></div>'; }
 
+/* ───────── écran d'accueil (grille de tuiles, comme la page d'accueil d'une app mobile) ───────── */
+const HOME_META = {
+  dash:{ic:'📊', c:'#1CAEE4'}, vc:{ic:'🛒', c:'#6c3fd1'}, bl:{ic:'📦', c:'#e0453a'}, stock:{ic:'🗃️', c:'#13813f'},
+  ac:{ic:'🧾', c:'#0b78a3'}, cli:{ic:'👥', c:'#8e44ad'}, fo:{ic:'🚚', c:'#E65100'}, dep:{ic:'💸', c:'#D81B60'},
+  rep:{ic:'🔧', c:'#3949AB'}, prod:{ic:'🏭', c:'#00897B'}
+};
+function allowedPage(p){ return can(p.perm) && !(p.opt && !(DB && DB[p.opt])); }
+function buildHomeGrid(){
+  const g = $('home-grid'); if(!g) return;
+  g.innerHTML = PAGES.filter(allowedPage).map(p => {
+    const m = HOME_META[p.id] || {ic:'📄', c:'var(--primary)'};
+    return '<button class="home-tile" style="background:' + m.c + '" onclick="go(\'' + p.id + '\')"><span class="ic">' + m.ic + '</span><span data-i="' + p.k + '"></span></button>';
+  }).join('');
+  applyLang();
+}
+
 function buildPages(){
   const main = $('main'), tabs = $('tabs'); tabs.innerHTML = '';
+  const hb = document.createElement('button'); hb.className = 'tab'; hb.id = 'tb-home'; hb.textContent = '🏠'; hb.title = t('home'); hb.onclick = () => go('home');
+  tabs.appendChild(hb);
   PAGES.forEach(p => {
     const b = document.createElement('button'); b.className = 'tab' + (p.opt && !(DB && DB[p.opt]) ? ' hide' : ''); b.id = 'tb-' + p.id; b.textContent = t(p.k); b.onclick = () => go(p.id); tabs.appendChild(b);
     if(p.id === 'dash' || $('p-' + p.id)) return;
@@ -283,13 +307,15 @@ function buildPages(){
     d.querySelectorAll('input,select').forEach(el => { el.oninput = el.onchange = () => { ST[p.id].page = 1; draw(p.id); }; });
     if(p.date){ const n = new Date(); $('f-' + p.id + '-a').value = ymd(new Date(n.getFullYear(), n.getMonth(), 1)); $('f-' + p.id + '-b').value = ymd(); }
   });
+  buildHomeGrid();
   applyLang();
 }
 function go(id){
   document.querySelectorAll('.pg').forEach(x => x.classList.toggle('on', x.id === 'p-' + id));
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.id === 'tb-' + id));
   try{ sessionStorage.setItem('sv_tab', id); }catch(e){}
-  id === 'dash' ? dashDraw() : draw(id); $('main').scrollTop = 0;
+  if(id === 'home') buildHomeGrid(); else id === 'dash' ? dashDraw() : draw(id);
+  $('main').scrollTop = 0;
 }
 function draw(id){
   const p = PAGES.find(x => x.id === id); if(!p || !DB) return;
@@ -428,7 +454,7 @@ function applyLang(){
   applyPh(); PAGES.forEach(p => { const b = $('tb-' + p.id); if(b) b.textContent = t(p.k); });
   if(META.name){ $('hf').textContent = t('f_file') + META.name; $('hu').textContent = t('f_upd') + new Date(META.time).toLocaleString(nf()); }
 }
-function setLang(l){ LANG = l; try{ localStorage.setItem('sv_lang2', l); }catch(e){} applyLang(); if(DB && USER){ const cur = (document.querySelector('.pg.on') || {}).id; const id = cur ? cur.slice(2) : 'dash'; id === 'dash' ? dashDraw() : draw(id); } }
+function setLang(l){ LANG = l; try{ localStorage.setItem('sv_lang2', l); }catch(e){} applyLang(); if(DB && USER){ const cur = (document.querySelector('.pg.on') || {}).id; const id = cur ? cur.slice(2) : 'home'; id === 'home' ? buildHomeGrid() : id === 'dash' ? dashDraw() : draw(id); } }
 /* ───────── compte utilisateur (table Utilisateur du fichier Excel) ───────── */
 let USER = null;
 const tbl = n => { const k = Object.keys(DB || {}).find(x => x.toLowerCase() === n); return k ? DB[k] : null; };
@@ -492,12 +518,11 @@ function start(){
   if(!USER){ $('lock').className = 'on'; showLogin(); return; }
   $('lock').className = ''; $('welcome').className = ''; $('who').textContent = USER.pin ? '' : '👤 ' + USER.nom; $('lo').style.display = USER.pin ? 'none' : '';
   buildPages(); bindDash();
-  const allowed = p => can(p.perm) && !(p.opt && !DB[p.opt]);
-  PAGES.forEach(p => { const b = $('tb-' + p.id); if(b) b.classList.toggle('hide', !allowed(p)); });
-  let tab = 'dash'; try{ tab = sessionStorage.getItem('sv_tab') || 'dash'; }catch(e){}
-  let cur = PAGES.find(p => p.id === tab); if(!cur || !allowed(cur)) cur = PAGES.find(allowed);
-  if(!cur){ toast(t('l_bad'), true); return; }
-  if(!$('dash-from').value) setQ('month'); applyLang(); go(cur.id);
+  PAGES.forEach(p => { const b = $('tb-' + p.id); if(b) b.classList.toggle('hide', !allowedPage(p)); });
+  if(!PAGES.some(allowedPage)){ toast(t('l_bad'), true); return; }
+  let tab = 'home'; try{ tab = sessionStorage.getItem('sv_tab') || 'home'; }catch(e){}
+  if(tab !== 'home'){ const cur = PAGES.find(p => p.id === tab); if(!cur || !allowedPage(cur)) tab = 'home'; }
+  if(!$('dash-from').value) setQ('month'); applyLang(); go(tab);
 }
 function applyPh(){ document.querySelectorAll('[data-ph]').forEach(e => e.placeholder = t(e.dataset.ph)); }
 async function boot2(){
